@@ -1,33 +1,31 @@
-const express = require('express');
-const axios = require('axios');
-const app = express();
+// /api/translate.js
 
-// Use the port specified by Vercel or fallback to 5001 for local development
-const port = process.env.PORT || 5001;
+const fetch = require('node-fetch');
 
-// Middleware to parse JSON bodies (built into Express)
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+module.exports = async (req, res) => {
+  // Check if the method is POST
+  if (req.method === 'POST') {
+    try {
+      // Send the request to your Flask API on Render
+      const response = await fetch('https://flasky-d9sr.onrender.com/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json', // Ensure content type is JSON
+        },
+        body: JSON.stringify(req.body),  // Forward the body from the React frontend to the Flask backend
+      });
 
-// Endpoint to handle the request from React frontend
-app.post('/translate', async (req, res) => {
-  try {
-    // Forward the image data to the Flask backend
-    const response = await axios.post('https://flasky-d9sr.onrender.com/translate', req.body, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+      // Parse the response from the Flask API
+      const data = await response.json();
 
-    // Return the response from Flask backend to React frontend
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error in middleman server:', error);
-    res.status(500).json({ error: 'Something went wrong with the translation.' });
+      // Send the data back to the React frontend
+      return res.status(200).json(data);
+    } catch (error) {
+      // Handle any errors
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  } else {
+    // If the method is not POST, return method not allowed
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-});
-
-// Start the server
-app.listen(port, () => {
-  console.log(`Middleman server is running on port ${port}`);
-});
+};
